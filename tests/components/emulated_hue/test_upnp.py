@@ -20,43 +20,14 @@ BRIDGE_URL_BASE = 'http://127.0.0.1:{}'.format(BRIDGE_SERVER_PORT) + '{}'
 JSON_HEADERS = {CONTENT_TYPE: const.CONTENT_TYPE_JSON}
 
 
-def setup_hass_instance(emulated_hue_config):
-    """Set up the Home Assistant instance to test."""
-    hass = get_test_home_assistant()
-
-    # We need to do this to get access to homeassistant/turn_(on,off)
-    run_coroutine_threadsafe(
-        core_components.async_setup(hass, {core.DOMAIN: {}}), hass.loop
-    ).result()
-
-    setup.setup_component(
-        hass, http.DOMAIN,
-        {http.DOMAIN: {http.CONF_SERVER_PORT: HTTP_SERVER_PORT}})
-
-    setup.setup_component(hass, emulated_hue.DOMAIN, emulated_hue_config)
-
-    return hass
-
-
-def start_hass_instance(hass):
-    """Start the Home Assistant instance to test."""
-    hass.start()
-
-
 class TestEmulatedHue(unittest.TestCase):
     """Test the emulated Hue component."""
-
     hass = None
 
     @classmethod
     def setUpClass(cls):
         """Set up the class."""
         cls.hass = hass = get_test_home_assistant()
-
-        # We need to do this to get access to homeassistant/turn_(on,off)
-        run_coroutine_threadsafe(
-            core_components.async_setup(hass, {core.DOMAIN: {}}), hass.loop
-        ).result()
 
         setup.setup_component(
             hass, http.DOMAIN,
