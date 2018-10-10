@@ -12,7 +12,7 @@ import homeassistant.helpers.config_validation as cv
 import homeassistant.components.alarm_control_panel as alarm
 from homeassistant.components.alarm_control_panel import PLATFORM_SCHEMA
 from homeassistant.const import (
-    CONF_PASSWORD, CONF_USERNAME, STATE_ALARM_ARMED_AWAY,
+    CONF_PASSWORD, CONF_USERNAME, CONF_LOCATION, STATE_ALARM_ARMED_AWAY,
     STATE_ALARM_ARMED_HOME, STATE_ALARM_ARMED_NIGHT, STATE_ALARM_DISARMED,
     STATE_ALARM_ARMING, STATE_ALARM_DISARMING, STATE_UNKNOWN, CONF_NAME,
     STATE_ALARM_ARMED_CUSTOM_BYPASS)
@@ -27,6 +27,7 @@ DEFAULT_NAME = 'Total Connect'
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_PASSWORD): cv.string,
     vol.Required(CONF_USERNAME): cv.string,
+    vol.Optional(CONF_LOCATION): cv.string,
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
 })
 
@@ -36,15 +37,18 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     name = config.get(CONF_NAME)
     username = config.get(CONF_USERNAME)
     password = config.get(CONF_PASSWORD)
+    location = config.get(CONF_LOCATION)
+    if location == "":
+        location = False
 
-    total_connect = TotalConnect(name, username, password)
+    total_connect = TotalConnect(name, username, password, location)
     add_entities([total_connect], True)
 
 
 class TotalConnect(alarm.AlarmControlPanel):
     """Represent an TotalConnect status."""
 
-    def __init__(self, name, username, password):
+    def __init__(self, name, username, password, location=False):
         """Initialize the TotalConnect status."""
         from total_connect_client import TotalConnectClient
 
@@ -52,6 +56,7 @@ class TotalConnect(alarm.AlarmControlPanel):
         self._name = name
         self._username = username
         self._password = password
+        self._location = location
         self._state = STATE_UNKNOWN
         self._client = TotalConnectClient.TotalConnectClient(
             username, password)
@@ -68,7 +73,7 @@ class TotalConnect(alarm.AlarmControlPanel):
 
     def update(self):
         """Return the state of the device."""
-        status = self._client.get_armed_status()
+        status = self._client.get_armed_status(self._location)
 
         if status == self._client.DISARMED:
             state = STATE_ALARM_DISARMED
@@ -91,16 +96,16 @@ class TotalConnect(alarm.AlarmControlPanel):
 
     def alarm_disarm(self, code=None):
         """Send disarm command."""
-        self._client.disarm()
+        self._client.disarm(self._location)
 
     def alarm_arm_home(self, code=None):
         """Send arm home command."""
-        self._client.arm_stay()
+        self._client.arm_stay(self._location)
 
     def alarm_arm_away(self, code=None):
         """Send arm away command."""
-        self._client.arm_away()
+        self._client.arm_away(self._location)
 
     def alarm_arm_night(self, code=None):
         """Send arm night command."""
-        self._client.arm_stay_night()
+        self._client.arm_stay_night(self._location)
